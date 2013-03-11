@@ -156,7 +156,7 @@ BuiltinDefaultCode::BuiltinDefaultCode(void)
 	// Acquire the Driver Station object
 	m_ds = DriverStation::GetInstance();
 	
-	//m_autonomousModeChooser = new SendableChooser();
+	m_autonomousModeChooser = new SendableChooser();
 	
 	// Define joysticks being used at USB port #1 and USB port #2 on the Drivers Station
 	m_rightStick = new Joystick(1);
@@ -186,7 +186,7 @@ BuiltinDefaultCode::~BuiltinDefaultCode(void)
 	delete m_shooter;
 	delete m_autonomousManager;
 	delete m_gyro;
-	//delete m_autonomousModeChooser;
+	delete m_autonomousModeChooser;
 }
 
 
@@ -197,9 +197,9 @@ void BuiltinDefaultCode::RobotInit(void)
 	// Actions which would be performed once (and only once) upon initialization of the
 	// robot would be put here.
 	
-	//m_autonomousModeChooser->AddDefault("A: Shoot from back side", new std::string("side"));
-	//m_autonomousModeChooser->AddObject("B: Shoot from middle", new std::string("middle"));
-	//SmartDashboard::PutData("Autonomous Mode", m_autonomousModeChooser);
+	m_autonomousModeChooser->AddDefault("A: Shoot from back side", new std::string("side"));
+	m_autonomousModeChooser->AddObject("B: Shoot from middle", new std::string("middle"));
+	SmartDashboard::PutData("Autonomous Mode", m_autonomousModeChooser);
 	//Camera Initalization
 #ifdef CAMERA_ON
 
@@ -220,14 +220,14 @@ void BuiltinDefaultCode::DisabledInit(void)
 void BuiltinDefaultCode::AutonomousInit(void) 
 {
 	ResetSubsystems();
-	/*std::string mode = *((std::string*)m_autonomousModeChooser->GetSelected());
+	std::string mode = *((std::string*)m_autonomousModeChooser->GetSelected());
 	SmartDashboard::PutString("Autonomous Mode", mode);
 	if(mode == "middle")
 		m_autonomousManager->SetStartState(AutonomousProgramB, 0);
 	else
 		m_autonomousManager->SetStartState(AutonomousProgramA, 0);
-	*/
-	m_autonomousManager->SetStartState(AutonomousProgramA, 0);
+	
+	//m_autonomousManager->SetStartState(AutonomousProgramA, 0);
 }
 
 void BuiltinDefaultCode::TeleopInit(void) 
