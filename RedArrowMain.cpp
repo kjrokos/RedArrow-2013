@@ -143,7 +143,7 @@ BuiltinDefaultCode::BuiltinDefaultCode(void)
 #else
 	m_arm = new ArmControl(ARM_PWM, ARM_UP_LS, ARM_DOWN_LS);
 #endif
-	m_shooter = new Jaguar(SHOOTER_PWM);
+	m_shooter = new Talon(SHOOTER_PWM);
 	m_climber = new Talon(CLIMBER_PWM);
 	m_elevation = new PotentiometerControl(ELEVATION_PWM, ELEVATION_POT, 270, 900, 0.06);
 	m_unjammer = new TwoStateServoControl(UNJAMMER_SERVO, 0, .915);

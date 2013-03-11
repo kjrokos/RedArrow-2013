@@ -53,7 +53,7 @@ public:
 	FeederControl *m_feeder;
 	TwoStateServoControl *m_flag;
 	TwoStateServoControl *m_unjammer;
-	Jaguar *m_shooter;
+	Talon *m_shooter;
 	Talon *m_climber;
 	PotentiometerControl *m_elevation;
 	Gyro *m_gyro;
