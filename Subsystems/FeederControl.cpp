@@ -1,40 +1,33 @@
 #include "FeederControl.h"
 
-FeederControl::FeederControl(uint32_t outputID, uint32_t servoID, uint32_t limitSwitchID)
+FeederControl::FeederControl(uint32_t outputID, uint32_t limitSwitchID)
 :m_feederActuator(new Relay(outputID, Relay::kBothDirections)),
  m_retractedPosition(new DigitalInput(limitSwitchID)),
- //m_servo(new TwoStateServoControl(servoID ,0,.9)),
  m_numberOfFeeds(0),
- m_state(STOPPED),
- m_manualControl(false)
+ m_state(STOPPED)
 {
+	m_timer.Reset();
 	m_feederActuator->Set(Relay::kOff);
-	//m_servo->Raise();
 }
 
 FeederControl::~FeederControl()
 {
 	delete m_feederActuator;
 	delete m_retractedPosition;
-	//delete m_servo;
 }
 
 void FeederControl::Reset()
 {
+	m_timer.Reset();
 	m_numberOfFeeds = 0;
 	this->Reverse(); // reverse if not in stopped position
-
-	//m_feederActuator->Set(Relay::kOff);
-	//m_state = STOPPED;
-	
-	//m_servo->Raise();
-	m_manualControl = false;
 }
 
 void FeederControl::Feed()
 {
-	if(m_state == STOPPED)
+	if(m_state == STOPPED || m_state == TIMEOUT)
 	{
+		m_timer.Reset();
 		m_state = INITIAL_ON;
 		//m_servo->Lower();
 	}
@@ -44,19 +37,15 @@ void FeederControl::Feed()
 void FeederControl::Reverse()
 {
 	if(m_state != STOPPED)
+	{
+		m_timer.Reset();
 		m_state = REVERSE;
+	}
 }
 
-void FeederControl::UnjammerUp()
+void FeederControl::Stop()
 {
-	//m_servo->Raise();
-	m_manualControl = true;
-}
-
-void FeederControl::UnjammerDown()
-{
-	//m_servo->Lower();
-	m_manualControl = true;
+	m_state = STOPPED;
 }
 
 void FeederControl::ResetNumberOfFeeds()
@@ -74,13 +63,17 @@ bool FeederControl::Update()
 	//printf("in FeederControl::Update state = %d\n", m_state);
 	//m_servo->Update();
 	
-	if(m_state == STOPPED)
+	if(m_timer.CkTime(true, 600) && m_state != STOPPED)
 	{
-		//printf("m_state == STOPPED\n");
+		m_state = TIMEOUT;
+		m_timer.Reset();
+	}
+	
+	if(m_state == STOPPED || m_state == TIMEOUT)
+	{
+		SmartDashboard::PutString("Feeder State", "Stopped");
 		m_feederActuator->Set(Relay::kOff);
-		//if(m_manualControl == false)
-		//	m_servo->Raise();
-		m_manualControl = false;
+		m_timer.Reset();
 		return true;
 	}
 	
@@ -88,14 +81,14 @@ bool FeederControl::Update()
 	
 	if(isRetracted && m_state == INITIAL_ON)
 	{
-		//printf("m_state == INITIAL_ON && retracted\n");
+		SmartDashboard::PutString("Feeder State", "Initial On");
 		m_feederActuator->Set(Relay::kForward);
 		return false;
 	}
 	
 	if(!isRetracted && m_state == INITIAL_ON)
 	{
-		//printf("m_state == INITIAL_ON && not retracted\n");
+		SmartDashboard::PutString("Feeder State", "Initial On");
 		m_feederActuator->Set(Relay::kForward);
 		m_state = ON;
 		return false;
@@ -103,14 +96,14 @@ bool FeederControl::Update()
 	
 	if(!isRetracted && m_state == ON)
 	{
-		//printf("m_state == ON && not retracted\n");
+		SmartDashboard::PutString("Feeder State", "On");
 		m_state = ON;
 		return false;
 	}
 	
 	if(isRetracted && m_state == ON)
 	{
-		//printf("m_state == ON && retracted");
+		SmartDashboard::PutString("Feeder State", "Stopping");
 		m_feederActuator->Set(Relay::kOff);
 		m_state = STOPPED;
 		m_numberOfFeeds+=1;
@@ -119,17 +112,20 @@ bool FeederControl::Update()
 	
 	if(!isRetracted && m_state == REVERSE)
 	{
+		SmartDashboard::PutString("Feeder State", "Reverse");
 		m_feederActuator->Set(Relay::kReverse);
 		return false;
 	}
 	if(isRetracted && m_state == REVERSE)
 	{
+		SmartDashboard::PutString("Feeder State", "Stopping");
 		m_feederActuator->Set(Relay::kOff);
 		m_state = STOPPED;
 		return true;
 	}
 	
 	//We Shouldn't Get Here
+	SmartDashboard::PutString("Feeder State", "Unknown State (Stopped)");
 	m_feederActuator->Set(Relay::kOff);
 	m_state = STOPPED;
 	return true;

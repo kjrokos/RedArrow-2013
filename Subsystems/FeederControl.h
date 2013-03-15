@@ -2,25 +2,25 @@
 #include "Relay.h"
 #include "DigitalInput.h"
 #include "TwoStateServoControl.h"
+#include "../Utilities/CxTimer.h"
 
 #define STOPPED 0
 #define INITIAL_ON 1
 #define ON 2
 #define REVERSE 3
+#define TIMEOUT 4
 
 class FeederControl
 {
 public:
-	FeederControl(uint32_t outputID, uint32_t servoID, uint32_t limitSwitchID);
+	FeederControl(uint32_t outputID, uint32_t limitSwitchID);
 	~FeederControl();
 	
 	void Reset();
 	
 	void Feed();
 	void Reverse();
-	
-	void UnjammerUp();
-	void UnjammerDown();
+	void Stop();
 	
 	void ResetNumberOfFeeds();
 	
@@ -37,6 +37,5 @@ private:
 	int m_numberOfFeeds;
 	int m_state;
 	
-	bool m_manualControl;
-	
+	CxTimer m_timer;
 };
