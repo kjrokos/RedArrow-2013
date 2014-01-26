@@ -51,7 +51,7 @@ NextState AutonomousProgramA(BuiltinDefaultCode *robot, int32_t state)
 			return NextState::EndState();
 		}
 		robot->m_feeder->Feed();
-		return NextState(1,1,1);
+		return NextState(1,1,3);
 		break;
 	default:
 		break;
@@ -137,7 +137,7 @@ BuiltinDefaultCode::BuiltinDefaultCode(void)
 	m_robotDrive = //new RobotDrive(LEFT_DRIVE_PWM, RIGHT_DRIVE_PWM);
 				new DriveTrain(LEFT_DRIVE_PWM, RIGHT_DRIVE_PWM,LEFT_DRIVE_ENC_A, LEFT_DRIVE_ENC_B, RIGHT_DRIVE_ENC_A, RIGHT_DRIVE_ENC_B, GYRO);
 	
-	m_feeder = new FeederControl(FEEDER_RELAY, UNJAMMER_SERVO, FEEDER_LS);
+	m_feeder = new FeederControl(FEEDER_RELAY, FEEDER_LS);
 #ifdef ARM_TYPE_POT
 	m_arm = new PotentiometerControl(ARM_PWM, ARM_POT, 70, 600);
 #else
@@ -155,9 +155,7 @@ BuiltinDefaultCode::BuiltinDefaultCode(void)
 	
 	// Acquire the Driver Station object
 	m_ds = DriverStation::GetInstance();
-	
-	m_autonomousModeChooser = new SendableChooser();
-	
+		
 	// Define joysticks being used at USB port #1 and USB port #2 on the Drivers Station
 	m_rightStick = new Joystick(1);
 	m_leftStick = new Joystick(2);
@@ -186,7 +184,6 @@ BuiltinDefaultCode::~BuiltinDefaultCode(void)
 	delete m_shooter;
 	delete m_autonomousManager;
 	delete m_gyro;
-	delete m_autonomousModeChooser;
 }
 
 
@@ -197,9 +194,6 @@ void BuiltinDefaultCode::RobotInit(void)
 	// Actions which would be performed once (and only once) upon initialization of the
 	// robot would be put here.
 	
-	m_autonomousModeChooser->AddDefault("A: Shoot from back side", new std::string("side"));
-	m_autonomousModeChooser->AddObject("B: Shoot from middle", new std::string("middle"));
-	SmartDashboard::PutData("Autonomous Mode", m_autonomousModeChooser);
 	//Camera Initalization
 #ifdef CAMERA_ON
 
@@ -220,14 +214,14 @@ void BuiltinDefaultCode::DisabledInit(void)
 void BuiltinDefaultCode::AutonomousInit(void) 
 {
 	ResetSubsystems();
-	std::string mode = *((std::string*)m_autonomousModeChooser->GetSelected());
+	/*std::string mode = *((std::string*)m_autonomousModeChooser->GetSelected());
 	SmartDashboard::PutString("Autonomous Mode", mode);
 	if(mode == "middle")
 		m_autonomousManager->SetStartState(AutonomousProgramB, 0);
 	else
 		m_autonomousManager->SetStartState(AutonomousProgramA, 0);
-	
-	//m_autonomousManager->SetStartState(AutonomousProgramA, 0);
+	*/
+	m_autonomousManager->SetStartState(AutonomousProgramA, 0);
 }
 
 void BuiltinDefaultCode::TeleopInit(void) 
@@ -345,6 +339,11 @@ void BuiltinDefaultCode::TeleopPeriodic(void)
 		leftJoystickIsUsed = true;
 	}
 
+	if(RS_B7)		//Emergency Stop (Feeder Motor)
+	{
+		m_feeder->Stop();
+	}
+	
 	if(RS_B8)		//Flag Lower
 		{
 		m_flag->Lower();

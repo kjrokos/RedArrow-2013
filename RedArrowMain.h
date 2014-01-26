@@ -100,7 +100,6 @@ private:
 	
 	// Declare a variable to use to access the driver station object
 	DriverStation *m_ds;						// driver station object
-	SendableChooser *m_autonomousModeChooser;
 	
 	// Declare variables for the two joysticks being used
 	Joystick *m_rightStick;			// joystick 1 (arcade stick or right tank stick)

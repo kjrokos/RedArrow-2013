@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include "CxTimer.h"
+#include "WPILib.h"
 
 class NextState
 {
@@ -34,6 +35,25 @@ private:
 };
 
 
+
+template<class Robot>
+class AutonomousProgram
+{
+public:
+    typedef NextState (*stateFunction)(Robot*,int32_t);
+
+public:
+    AutonomousProgram(stateFunction stateFunction, int32_t initialState=0)
+    : m_stateFunction(stateFunction), m_initialState(initialState) {};
+    ~AutonomousProgram();
+    
+private:
+    stateFunction m_stateFunction;
+    int32_t m_initialState;
+};
+
+
+
 template<class Robot>
 class AutonomousManager
 {
@@ -45,6 +65,7 @@ public:
     ~AutonomousManager();
     
     void SetStartState(stateFunction function, int32_t initialState);
+    void AddAutonomousMode(std::string name, stateFunction function, int32_t initialState);
     
     void Run();
     
@@ -52,10 +73,15 @@ private:
     Robot *m_closure;
     stateFunction m_stateFunction;
     int32_t m_nextState;
+    
     uint32_t m_timeUntilNextState;
     uint32_t m_timeout;
     CxTimer m_minTimer;
     CxTimer m_maxTimer;
+    
+    SendableChooser *m_autonomousModeChooser;
+    std::vector<AutonomousProgram<Robot> *> m_autonomousPrograms;
+
 };
 
 template<class Robot>
@@ -63,13 +89,16 @@ AutonomousManager<Robot>::AutonomousManager(Robot *closure, stateFunction stateF
     : m_closure(closure), m_nextState(initialState), m_timeUntilNextState(0), m_timeout(0)
 {
     m_minTimer.Reset();
-    m_maxTimer.Reset();	
+    m_maxTimer.Reset();
+    m_autonomousModeChooser = new SendableChooser();
 }
     
 template<class Robot>
 AutonomousManager<Robot>::~AutonomousManager()
 {
-
+	delete m_autonomousModeChooser;
+    for(uint32_t i=0; i<m_autonomousPrograms.size(); i++)
+        delete m_autonomousPrograms[i];
 }
 
 template<class Robot>
@@ -82,9 +111,28 @@ void AutonomousManager<Robot>::SetStartState(stateFunction stateFunction, int32_
 }
 
 template<class Robot>
+void AutonomousManager<Robot>::AddAutonomousMode(std::string name, stateFunction stateFunction, int32_t initialState)
+{
+    AutonomousProgram<Robot> *program = new AutonomousProgram<Robot>(stateFunction, initialState);
+    m_autonomousPrograms.push_back(program);
+    
+    m_minTimer.Reset();
+    m_maxTimer.Reset();
+    
+    if(m_autonomousPrograms.size() == 1)
+    {
+        m_autonomousModeChooser->AddDefault(name, program);
+	}
+    else
+    {
+        m_autonomousModeChooser->AddObject(name, program);
+    }
+	SmartDashboard::PutData("Autonomous Mode", m_autonomousModeChooser);
+}
+
+template<class Robot>
 void AutonomousManager<Robot>::Run()
 {
-    NextState info;
     bool finished = m_closure->UpdateSubsystems();
     
     if(m_nextState==-1)
@@ -97,7 +145,7 @@ void AutonomousManager<Robot>::Run()
     // 1. maximum time has elapsed (timeout)
     if((finished && m_minTimer.CkTime(true, m_timeUntilNextState)) || m_maxTimer.CkTime(true, m_timeout))
     {
-        info = m_stateFunction(m_closure, m_nextState);
+        NextState info = m_stateFunction(m_closure, m_nextState);
         m_minTimer.Reset();
         m_maxTimer.Reset();
         m_nextState = info.NextStateID();
